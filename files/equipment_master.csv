@@ -1,0 +1,51 @@
+equipment_id,equipment_type,location,installation_year,age_years,manufacturer,criticality
+EQ-0001,Air Compressor,Plant A - Line 1,2020,4,Grundfos,High
+EQ-0002,Heat Exchanger,Utilities Block,2013,11,Siemens,Low
+EQ-0003,Cooling Tower,Plant A - Line 1,2011,13,Siemens,High
+EQ-0004,Electric Motor,Warehouse C,2013,11,SKF,High
+EQ-0005,Electric Motor,Utilities Block,2018,6,SKF,Medium
+EQ-0006,Gearbox,Warehouse C,2013,11,Grundfos,High
+EQ-0007,Heat Exchanger,Utilities Block,2022,2,Atlas Copco,Medium
+EQ-0008,Heat Exchanger,Plant A - Line 2,2014,10,Grundfos,High
+EQ-0009,Cooling Tower,Plant A - Line 1,2011,13,Grundfos,Medium
+EQ-0010,Hydraulic Press,Plant A - Line 1,2019,5,Atlas Copco,Low
+EQ-0011,Cooling Tower,Plant A - Line 1,2011,13,SKF,Medium
+EQ-0012,Conveyor Belt,Warehouse C,2020,4,ABB,High
+EQ-0013,Electric Motor,Plant B - Line 1,2010,14,Siemens,High
+EQ-0014,Cooling Tower,Plant B - Line 1,2011,13,Atlas Copco,Medium
+EQ-0015,Conveyor Belt,Plant B - Line 1,2012,12,ABB,Medium
+EQ-0016,Air Compressor,Warehouse C,2021,3,ABB,Low
+EQ-0017,Electric Motor,Plant A - Line 2,2021,3,Atlas Copco,Medium
+EQ-0018,Electric Motor,Utilities Block,2014,10,Grundfos,High
+EQ-0019,Centrifugal Pump,Plant B - Line 1,2013,11,Atlas Copco,Medium
+EQ-0020,Electric Motor,Warehouse C,2011,13,Grundfos,High
+EQ-0021,Gearbox,Plant B - Line 3,2020,4,Atlas Copco,High
+EQ-0022,Heat Exchanger,Plant A - Line 2,2014,10,SKF,Low
+EQ-0023,Cooling Tower,Warehouse C,2014,10,Atlas Copco,Medium
+EQ-0024,Heat Exchanger,Warehouse C,2013,11,Atlas Copco,High
+EQ-0025,Centrifugal Pump,Plant A - Line 1,2022,2,ABB,High
+EQ-0026,Cooling Tower,Warehouse C,2022,2,Siemens,Medium
+EQ-0027,Gearbox,Warehouse C,2016,8,Grundfos,Low
+EQ-0028,Air Compressor,Utilities Block,2010,14,SKF,Medium
+EQ-0029,Conveyor Belt,Plant A - Line 1,2022,2,Grundfos,Medium
+EQ-0030,Gearbox,Plant A - Line 1,2012,12,Grundfos,Low
+EQ-0031,Heat Exchanger,Warehouse C,2022,2,Siemens,Medium
+EQ-0032,Electric Motor,Plant A - Line 2,2020,4,Grundfos,High
+EQ-0033,Centrifugal Pump,Warehouse C,2018,6,Grundfos,Medium
+EQ-0034,Air Compressor,Plant B - Line 1,2010,14,Grundfos,High
+EQ-0035,Electric Motor,Warehouse C,2010,14,Siemens,High
+EQ-0036,Gearbox,Plant A - Line 1,2021,3,SKF,High
+EQ-0037,Gearbox,Warehouse C,2012,12,ABB,Medium
+EQ-0038,Cooling Tower,Plant A - Line 2,2018,6,SKF,High
+EQ-0039,Hydraulic Press,Plant B - Line 3,2021,3,Grundfos,Medium
+EQ-0040,Gearbox,Plant A - Line 1,2018,6,ABB,High
+EQ-0041,Conveyor Belt,Plant A - Line 1,2011,13,SKF,Low
+EQ-0042,Electric Motor,Plant A - Line 1,2013,11,Siemens,High
+EQ-0043,Air Compressor,Plant A - Line 1,2013,11,Grundfos,High
+EQ-0044,Electric Motor,Plant B - Line 1,2018,6,Atlas Copco,High
+EQ-0045,Heat Exchanger,Utilities Block,2018,6,SKF,Low
+EQ-0046,Electric Motor,Plant B - Line 3,2017,7,Atlas Copco,High
+EQ-0047,Air Compressor,Utilities Block,2011,13,Atlas Copco,Medium
+EQ-0048,Cooling Tower,Plant B - Line 3,2016,8,Siemens,High
+EQ-0049,Cooling Tower,Utilities Block,2010,14,Grundfos,High
+EQ-0050,Electric Motor,Plant A - Line 2,2013,11,SKF,Medium
