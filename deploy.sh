@@ -9,6 +9,9 @@ set -euo pipefail
 #   ./deploy.sh -t prod                            # deploy to a specific target
 #   ./deploy.sh --catalog my_cat --schema my_sch   # override variables
 #   ./deploy.sh --host https://my-workspace.cloud.databricks.com
+#
+# Configuration is read from config.yml (edit for your workspace).
+# CLI flags override config.yml values.
 # ─────────────────────────────────────────────────────────────────────
 
 TARGET="dev"
@@ -24,6 +27,8 @@ usage() {
 Usage: $(basename "$0") [OPTIONS]
 
 Deploy the MSC Cargo Predictive Maintenance demo to a Databricks workspace.
+
+Configuration is read from config.yml. CLI flags override config values.
 
 Options:
   -t, --target TARGET         Bundle target (default: dev)
@@ -63,6 +68,29 @@ info()  { printf "\033[1;34m▶ %s\033[0m\n" "$1"; }
 ok()    { printf "\033[1;32m✓ %s\033[0m\n" "$1"; }
 fail()  { printf "\033[1;31m✗ %s\033[0m\n" "$1"; exit 1; }
 
+# ── Load config.yml ──────────────────────────────────────────────────
+
+CONFIG_FILE="config.yml"
+CONFIG_CATALOG=""
+CONFIG_SCHEMA=""
+CONFIG_WAREHOUSE=""
+
+if [[ -f "$CONFIG_FILE" ]]; then
+  CONFIG_CATALOG=$(grep '^catalog:' "$CONFIG_FILE" | awk '{print $2}' | head -1)
+  CONFIG_SCHEMA=$(grep '^schema:' "$CONFIG_FILE" | awk '{print $2}' | head -1)
+  CONFIG_WAREHOUSE=$(grep '^warehouse_id:' "$CONFIG_FILE" | awk '{print $2}' | head -1)
+fi
+
+# Resolve: CLI flag > config.yml > hardcoded fallback
+RESOLVED_CATALOG="${CATALOG:-${CONFIG_CATALOG:-serverless_stable_3n0ihb_catalog}}"
+RESOLVED_SCHEMA="${SCHEMA:-${CONFIG_SCHEMA:-msc_cargo_predictive_maintenance}}"
+RESOLVED_WAREHOUSE="${WAREHOUSE_ID:-${CONFIG_WAREHOUSE:-b868e84cedeb4262}}"
+
+VOLUME_PATH="/Volumes/${RESOLVED_CATALOG}/${RESOLVED_SCHEMA}/raw_data"
+
+# Build --var flags for bundle commands
+VAR_FLAGS=(--var="catalog=${RESOLVED_CATALOG}" --var="schema=${RESOLVED_SCHEMA}" --var="warehouse_id=${RESOLVED_WAREHOUSE}")
+
 # ── Pre-flight checks ───────────────────────────────────────────────
 
 info "Pre-flight checks"
@@ -72,35 +100,12 @@ command -v git >/dev/null 2>&1        || fail "Git not found."
 
 CLI_VERSION=$(databricks --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
 ok "Databricks CLI v${CLI_VERSION}"
-
-# ── Resolve variables for file upload paths ──────────────────────────
-
-if [[ -n "$CATALOG" ]]; then
-  RESOLVED_CATALOG="$CATALOG"
-else
-  RESOLVED_CATALOG=$(grep -A2 "^variables:" databricks.yml | grep -A1 "catalog:" | grep "default:" | awk '{print $2}' | head -1)
-  [[ -z "$RESOLVED_CATALOG" ]] && RESOLVED_CATALOG="serverless_stable_3n0ihb_catalog"
-fi
-
-if [[ -n "$SCHEMA" ]]; then
-  RESOLVED_SCHEMA="$SCHEMA"
-else
-  RESOLVED_SCHEMA=$(grep -A5 "^variables:" databricks.yml | grep -A1 "schema:" | grep "default:" | awk '{print $2}' | head -1)
-  [[ -z "$RESOLVED_SCHEMA" ]] && RESOLVED_SCHEMA="msc_cargo_predictive_maintenance"
-fi
-
-VOLUME_PATH="/Volumes/${RESOLVED_CATALOG}/${RESOLVED_SCHEMA}/raw_data"
-
-# Build --var flags
-VAR_FLAGS=()
-[[ -n "$CATALOG" ]]      && VAR_FLAGS+=(--var="catalog=${CATALOG}")
-[[ -n "$SCHEMA" ]]       && VAR_FLAGS+=(--var="schema=${SCHEMA}")
-[[ -n "$WAREHOUSE_ID" ]] && VAR_FLAGS+=(--var="warehouse_id=${WAREHOUSE_ID}")
+ok "Config: catalog=${RESOLVED_CATALOG}, schema=${RESOLVED_SCHEMA}"
 
 # ── Step 1: Authenticate ────────────────────────────────────────────
 
 if [[ "$SKIP_AUTH" == false ]]; then
-  info "Step 1/6 — Authenticate"
+  info "Step 1/7 — Authenticate"
   if [[ -n "$HOST" ]]; then
     databricks auth login --host "$HOST"
   else
@@ -114,24 +119,39 @@ if [[ "$SKIP_AUTH" == false ]]; then
   fi
   ok "Authenticated"
 else
-  info "Step 1/6 — Authenticate (skipped)"
+  info "Step 1/7 — Authenticate (skipped)"
 fi
 
-# ── Step 2: Validate ────────────────────────────────────────────────
+# ── Step 2: Check/Create Catalog ────────────────────────────────────
 
-info "Step 2/6 — Validate bundle"
-databricks bundle validate -t "$TARGET" "${VAR_FLAGS[@]+"${VAR_FLAGS[@]}"}" || fail "Bundle validation failed"
+info "Step 2/7 — Check catalog '${RESOLVED_CATALOG}' exists"
+
+if databricks catalogs get "$RESOLVED_CATALOG" &>/dev/null; then
+  ok "Catalog '${RESOLVED_CATALOG}' exists"
+else
+  info "Catalog '${RESOLVED_CATALOG}' not found — creating..."
+  if databricks catalogs create "$RESOLVED_CATALOG" &>/dev/null; then
+    ok "Catalog '${RESOLVED_CATALOG}' created"
+  else
+    fail "Failed to create catalog '${RESOLVED_CATALOG}'. Check permissions or create it manually."
+  fi
+fi
+
+# ── Step 3: Validate ────────────────────────────────────────────────
+
+info "Step 3/7 — Validate bundle"
+databricks bundle validate -t "$TARGET" "${VAR_FLAGS[@]}" || fail "Bundle validation failed"
 ok "Bundle valid"
 
-# ── Step 3: Deploy ──────────────────────────────────────────────────
+# ── Step 4: Deploy ──────────────────────────────────────────────────
 
-info "Step 3/6 — Deploy resources (schema, volume, job, dashboard)"
-databricks bundle deploy -t "$TARGET" "${VAR_FLAGS[@]+"${VAR_FLAGS[@]}"}" || fail "Deployment failed"
+info "Step 4/7 — Deploy resources (schema, volume, job, dashboard)"
+databricks bundle deploy -t "$TARGET" "${VAR_FLAGS[@]}" || fail "Deployment failed"
 ok "Resources deployed"
 
-# ── Step 4: Upload data ─────────────────────────────────────────────
+# ── Step 5: Upload data ─────────────────────────────────────────────
 
-info "Step 4/6 — Upload source data to volume"
+info "Step 5/7 — Upload source data to volume"
 
 for csv in files/equipment_master.csv files/work_orders.csv; do
   if [[ -f "$csv" ]]; then
@@ -142,19 +162,19 @@ for csv in files/equipment_master.csv files/work_orders.csv; do
   fi
 done
 
-# ── Step 5: Run pipeline ────────────────────────────────────────────
+# ── Step 6: Run pipeline ────────────────────────────────────────────
 
 if [[ "$SKIP_RUN" == false ]]; then
-  info "Step 5/6 — Run pipeline (setup_tables → predictive_maintenance)"
-  databricks bundle run predictive_maintenance_pipeline -t "$TARGET" "${VAR_FLAGS[@]+"${VAR_FLAGS[@]}"}" || fail "Pipeline run failed"
+  info "Step 6/7 — Run pipeline (setup_tables → predictive_maintenance)"
+  databricks bundle run predictive_maintenance_pipeline -t "$TARGET" "${VAR_FLAGS[@]}" || fail "Pipeline run failed"
   ok "Pipeline completed"
 else
-  info "Step 5/6 — Run pipeline (skipped)"
+  info "Step 6/7 — Run pipeline (skipped)"
 fi
 
-# ── Step 6: Summary ─────────────────────────────────────────────────
+# ── Step 7: Summary ─────────────────────────────────────────────────
 
-info "Step 6/6 — Deployment complete!"
+info "Step 7/7 — Deployment complete!"
 
 cat <<EOF
 
@@ -164,6 +184,7 @@ cat <<EOF
   │  Target:     ${TARGET}
   │  Catalog:    ${RESOLVED_CATALOG}
   │  Schema:     ${RESOLVED_SCHEMA}
+  │  Warehouse:  ${RESOLVED_WAREHOUSE}
   │  Volume:     ${VOLUME_PATH}
   │                                                         │
   │  Next steps:                                            │

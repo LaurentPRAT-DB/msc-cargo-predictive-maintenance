@@ -1,0 +1,6 @@
+# MSC Cargo — Predictive Maintenance: Deployment configuration
+# Edit these values for your workspace, then run ./deploy.sh
+
+catalog: serverless_stable_3n0ihb_catalog
+schema: msc_cargo_predictive_maintenance
+warehouse_id: b868e84cedeb4262

@@ -220,29 +220,33 @@ The notebook produces 5 PNG plots saved to the volume:
 git clone https://github.com/LaurentPRAT-DB/msc-cargo-predictive-maintenance.git
 cd msc-cargo-predictive-maintenance
 
-# 2. Authenticate with your Databricks workspace
-databricks auth login --host https://YOUR-WORKSPACE.cloud.databricks.com
+# 2. Edit config.yml for your workspace
+#    Set your catalog, schema, and warehouse_id
+vi config.yml
 
-# 3. Configure target variables (edit databricks.yml or pass at deploy time)
-#    - catalog: your Unity Catalog name
-#    - schema: target schema name
-#    - warehouse_id: SQL warehouse for the dashboard
-
-# 4. Deploy all resources
-databricks bundle deploy -t dev
-
-# 5. Upload source data to the volume
-databricks fs cp files/equipment_master.csv /Volumes/<catalog>/<schema>/raw_data/
-databricks fs cp files/work_orders.csv /Volumes/<catalog>/<schema>/raw_data/
-
-# 6. Run the pipeline
-databricks bundle run predictive_maintenance_pipeline -t dev
+# 3. Run the one-click deployment
+./deploy.sh
 ```
+
+### Configuration
+
+Edit **`config.yml`** at the project root to set your workspace-specific values:
+
+```yaml
+catalog: my_catalog                       # Unity Catalog name
+schema: msc_cargo_predictive_maintenance  # Target schema
+warehouse_id: abc123def456                # SQL warehouse for the dashboard
+```
+
+The deploy script reads this file automatically. CLI flags (`--catalog`, `--schema`, `--warehouse-id`) override config values if provided.
+
+The script also **checks if the catalog exists** before deploying — if it doesn't, it will attempt to create it.
 
 ### What Gets Deployed
 
 | Resource | Type | Description |
 |----------|------|-------------|
+| Catalog | Unity Catalog | Created if it doesn't exist |
 | Schema | Unity Catalog | `<catalog>.<schema>` |
 | Volume | UC Volume | `raw_data` — stores CSVs and generated plots |
 | Job | Workflow | 2-task pipeline (setup_tables → predictive_maintenance) |
@@ -250,13 +254,10 @@ databricks bundle run predictive_maintenance_pipeline -t dev
 
 ### Deploying to a Different Workspace
 
-Override variables at deploy time:
+Edit `config.yml` with your target values, or override at deploy time:
 
 ```bash
-databricks bundle deploy -t dev \
-  --var="catalog=my_catalog" \
-  --var="schema=my_schema" \
-  --var="warehouse_id=my_warehouse_id"
+./deploy.sh --catalog my_catalog --schema my_schema --warehouse-id my_warehouse
 ```
 
 Or add a new target in `databricks.yml`:
@@ -411,7 +412,9 @@ This project uses [Databricks Asset Bundles (DABs)](https://docs.databricks.com/
 ### Bundle Structure
 
 ```
+config.yml                                  # Deployment config (catalog, schema, warehouse)
 databricks.yml                              # Bundle config + variables + targets
+deploy.sh                                   # One-click deployment script
 resources/
 ├── schema.yml                              # UC schema + volume
 ├── predictive_maintenance_job.yml          # 2-task serverless job
