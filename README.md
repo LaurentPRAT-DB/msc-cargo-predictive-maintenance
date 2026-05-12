@@ -121,12 +121,168 @@ This notebook executes the full defect clustering pipeline:
 - **Runtime**: ~60 seconds
 - **Outcome**: Two output Delta tables + visualisations (saved as PNG in the volume)
 
-### Expected Results
+---
 
-- **Best k**: 13 clusters (silhouette-optimised)
-- **Named clusters**: Bearing Wear, Vibration, Seal Leak, Overheating, Lubrication, Electrical Fault, Corrosion
-- **ARI**: ~0.17 (expected with TF-IDF; improves significantly with BGE-M3 embeddings)
-- **Plots saved** to volume: quality distribution, silhouette/elbow curves, confusion heatmap, cluster sizes, UMAP projection
+## Results
+
+The pipeline was executed on serverless compute (runtime ~60s). Below are the actual outputs.
+
+### Pipeline Summary
+
+| Metric | Value |
+|--------|-------|
+| Input records | 800 |
+| After quality filter (≥ 0.50) | 792 (99.0%) |
+| Best k (silhouette-optimised) | 13 |
+| Final named defect clusters | 7 |
+| Additional auto-labelled clusters | 6 |
+| Average data quality score | 0.703 |
+| Average repair time | 8.1 hrs |
+| Average downtime | 6.0 hrs |
+
+### Defect Cluster Distribution
+
+| Cluster | Records | % |
+|---------|---------|---|
+| Mechanical Seal Leak | 176 | 22.2% |
+| Cluster 11 | 88 | 11.1% |
+| Cluster 7 | 79 | 10.0% |
+| Overheating | 60 | 7.6% |
+| Electrical Fault | 58 | 7.3% |
+| Cluster 10 | 52 | 6.6% |
+| Cluster 8 | 51 | 6.4% |
+| Cluster 9 | 47 | 5.9% |
+| Corrosion & Erosion | 41 | 5.2% |
+| Lubrication Issue | 38 | 4.8% |
+| Cluster 12 | 36 | 4.5% |
+| Vibration & Imbalance | 33 | 4.2% |
+| Bearing Wear & Noise | 33 | 4.2% |
+
+### Severity Breakdown
+
+| Severity | Records | % |
+|----------|---------|---|
+| Medium | 419 | 52.9% |
+| Low | 197 | 24.9% |
+| High | 176 | 22.2% |
+
+### Equipment Type Coverage
+
+| Equipment Type | Visits | Avg Quality |
+|----------------|--------|-------------|
+| Electric Motor | 168 | 0.699 |
+| Cooling Tower | 148 | 0.699 |
+| Gearbox | 113 | 0.700 |
+| Air Compressor | 110 | 0.702 |
+| Heat Exchanger | 108 | 0.715 |
+| Conveyor Belt | 62 | 0.713 |
+| Centrifugal Pump | 52 | 0.699 |
+| Hydraulic Press | 31 | 0.705 |
+
+### Top Equipment by Visit Frequency
+
+| Equipment | Visits | Distinct Defects | Avg Repair (hrs) | % High Severity |
+|-----------|--------|-----------------|-------------------|-----------------|
+| EQ-0049 | 25 | 9 | 8.3 | 12.0% |
+| EQ-0007 | 23 | 8 | 8.8 | 30.4% |
+| EQ-0025 | 22 | 9 | 7.9 | 18.2% |
+| EQ-0023 | 22 | 10 | 8.8 | 13.6% |
+| EQ-0001 | 21 | 10 | 9.4 | 33.3% |
+
+### Generated Visualisations
+
+The notebook produces 5 PNG plots saved to the volume:
+
+| Plot | Description |
+|------|-------------|
+| `01_quality_distribution.png` | Histogram of data quality scores with threshold line |
+| `02_kmeans_tuning.png` | Silhouette score and inertia elbow curve across k values |
+| `03_cluster_purity_heatmap.png` | Row-normalised confusion matrix: true labels vs predicted clusters |
+| `04_cluster_sizes.png` | Horizontal bar chart of records per cluster |
+| `05_umap_projection.png` | 2D UMAP projection coloured by cluster assignment |
+
+---
+
+## Test the Demo
+
+### Option A — Run via Databricks Asset Bundle (recommended)
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/LaurentPRAT-DB/msc-cargo-predictive-maintenance.git
+cd msc-cargo-predictive-maintenance
+
+# 2. Authenticate (if not already configured)
+databricks auth login --host https://fevm-serverless-stable-3n0ihb.cloud.databricks.com
+
+# 3. Validate the bundle
+databricks bundle validate -t dev
+
+# 4. Deploy resources (schema, volume, job, notebooks)
+databricks bundle deploy -t dev
+
+# 5. Upload data files to the volume
+databricks fs cp files/equipment_master.csv /Volumes/serverless_stable_3n0ihb_catalog/msc_cargo_predictive_maintenance/raw_data/
+databricks fs cp files/work_orders.csv /Volumes/serverless_stable_3n0ihb_catalog/msc_cargo_predictive_maintenance/raw_data/
+
+# 6. Run the full pipeline (setup_tables → predictive_maintenance)
+databricks bundle run predictive_maintenance_pipeline -t dev
+```
+
+### Option B — Run notebooks interactively
+
+1. Open the workspace: https://fevm-serverless-stable-3n0ihb.cloud.databricks.com
+2. Navigate to **Workspace → Users → laurent.prat@databricks.com → msc_cargo_predictive_maintenance → notebooks**
+3. Run **`00_setup_tables`** — creates Delta tables from CSVs in the volume
+4. Run **`01_predictive_maintenance`** — executes the full clustering pipeline
+
+Both notebooks use **serverless compute** by default (no cluster setup required).
+
+### Verify Results
+
+After the pipeline completes, validate the outputs:
+
+```sql
+-- Check all 4 tables exist with expected row counts
+SELECT 'equipment_master' as tbl, count(*) as rows
+FROM serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.equipment_master
+UNION ALL SELECT 'work_orders', count(*)
+FROM serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.work_orders
+UNION ALL SELECT 'defect_features', count(*)
+FROM serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.defect_features
+UNION ALL SELECT 'equipment_cluster_agg', count(*)
+FROM serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.equipment_cluster_agg;
+```
+
+Expected output:
+
+| Table | Rows |
+|-------|------|
+| equipment_master | 50 |
+| work_orders | 800 |
+| defect_features | 792 |
+| equipment_cluster_agg | 50 |
+
+```sql
+-- Verify cluster distribution
+SELECT defect_cluster_name, count(*) as records
+FROM serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.defect_features
+GROUP BY 1 ORDER BY records DESC;
+```
+
+```sql
+-- Check plots were generated
+LIST '/Volumes/serverless_stable_3n0ihb_catalog/msc_cargo_predictive_maintenance/raw_data/*.png';
+```
+
+### Expected Behaviour
+
+- The quality filter removes ~1% of records (those below 0.50 composite score)
+- K-means finds k=13 as the optimal cluster count via silhouette maximisation
+- 7 clusters map cleanly to known defect types; 6 represent mixed/overlapping failure modes
+- ARI is ~0.17 with TF-IDF (improves to 0.5+ with BGE-M3 embeddings in production)
+- The UMAP plot shows visible cluster separation despite the TF-IDF limitation
+- Total runtime on serverless: ~60 seconds for both notebooks combined
 
 ---
 
@@ -155,6 +311,39 @@ This yields higher ARI (0.5+) because contextual embeddings better separate over
 
 ---
 
+## Deployment (Databricks Asset Bundle)
+
+This project includes a DABs configuration for repeatable deployment.
+
+```
+databricks.yml                              # Bundle config + targets
+resources/
+├── schema.yml                              # UC schema + volume
+└── predictive_maintenance_job.yml          # 2-task serverless job
+notebooks/
+├── 00_setup_tables.py                      # Task 1: CSV → Delta
+└── 01_predictive_maintenance.py            # Task 2: Clustering pipeline
+files/
+├── equipment_master.csv                    # Source data
+├── work_orders.csv
+├── defect_features.csv
+└── equipment_cluster_agg.csv
+```
+
+### Bundle Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `catalog` | `serverless_stable_3n0ihb_catalog` | Target Unity Catalog |
+| `schema` | `msc_cargo_predictive_maintenance` | Target schema |
+
+Override per target in `databricks.yml` or at deploy time:
+```bash
+databricks bundle deploy -t dev --var="catalog=my_catalog" --var="schema=my_schema"
+```
+
+---
+
 ## Schema Reference
 
 ```
@@ -168,5 +357,9 @@ serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance
     ├── work_orders.csv
     ├── defect_features.csv
     ├── equipment_cluster_agg.csv
-    └── *.png (generated plots)
+    ├── 01_quality_distribution.png
+    ├── 02_kmeans_tuning.png
+    ├── 03_cluster_purity_heatmap.png
+    ├── 04_cluster_sizes.png
+    └── 05_umap_projection.png
 ```
