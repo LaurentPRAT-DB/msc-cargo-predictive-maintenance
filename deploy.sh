@@ -155,7 +155,7 @@ info "Step 5/7 — Upload source data to volume"
 
 for csv in files/equipment_master.csv files/work_orders.csv; do
   if [[ -f "$csv" ]]; then
-    databricks fs cp "$csv" "${VOLUME_PATH}/$(basename "$csv")" --overwrite || fail "Failed to upload $csv"
+    databricks fs cp "$csv" "dbfs:${VOLUME_PATH}/$(basename "$csv")" --overwrite || fail "Failed to upload $csv"
     ok "Uploaded $(basename "$csv")"
   else
     fail "File not found: $csv"

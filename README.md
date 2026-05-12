@@ -316,10 +316,11 @@ The script handles authentication, validation, deployment, data upload, and pipe
 
 ```bash
 databricks auth login --host https://fevm-serverless-stable-3n0ihb.cloud.databricks.com
+databricks catalogs get serverless_stable_3n0ihb_catalog    # verify catalog exists
 databricks bundle validate -t dev
 databricks bundle deploy -t dev
-databricks fs cp files/equipment_master.csv /Volumes/serverless_stable_3n0ihb_catalog/msc_cargo_predictive_maintenance/raw_data/
-databricks fs cp files/work_orders.csv /Volumes/serverless_stable_3n0ihb_catalog/msc_cargo_predictive_maintenance/raw_data/
+databricks fs cp files/equipment_master.csv dbfs:/Volumes/serverless_stable_3n0ihb_catalog/msc_cargo_predictive_maintenance/raw_data/equipment_master.csv --overwrite
+databricks fs cp files/work_orders.csv dbfs:/Volumes/serverless_stable_3n0ihb_catalog/msc_cargo_predictive_maintenance/raw_data/work_orders.csv --overwrite
 databricks bundle run predictive_maintenance_pipeline -t dev
 ```
 
