@@ -11,6 +11,9 @@ variables:
   schema:
     description: Schema for predictive maintenance tables
     default: msc_cargo_predictive_maintenance
+  warehouse_id:
+    description: SQL warehouse for dashboard queries
+    default: b868e84cedeb4262
 
 targets:
   dev:

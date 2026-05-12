@@ -1,0 +1,161 @@
+{
+  "datasets": [
+    {
+      "name": "defect_data",
+      "displayName": "Defect Data",
+      "queryLines": [
+        "SELECT record_id, equipment_id, equipment_type, location, visit_date, defect_cluster_name, severity, days_to_failure, repair_duration_hrs, downtime_hrs, parts_replaced, quality_score FROM serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.defect_features"
+      ]
+    },
+    {
+      "name": "monthly_trend",
+      "displayName": "Monthly Trend",
+      "queryLines": [
+        "SELECT DATE_TRUNC('MONTH', visit_date) as month, count(*) as visits, round(avg(quality_score), 3) as avg_quality FROM serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.defect_features GROUP BY DATE_TRUNC('MONTH', visit_date) ORDER BY month"
+      ]
+    },
+    {
+      "name": "equipment_agg",
+      "displayName": "Equipment Aggregates",
+      "queryLines": [
+        "SELECT a.equipment_id, m.equipment_type, m.location, m.manufacturer, m.criticality, a.total_visits, a.distinct_defects, a.avg_quality_score, round(a.avg_repair_hrs, 1) as avg_repair_hrs, round(a.avg_downtime_hrs, 1) as avg_downtime_hrs, round(a.pct_high_severity * 100, 1) as pct_high_severity, a.last_visit_date FROM serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.equipment_cluster_agg a JOIN serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.equipment_master m ON a.equipment_id = m.equipment_id ORDER BY a.total_visits DESC"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "title",
+            "multilineTextboxSpec": {
+              "lines": ["## MSC Cargo — Predictive Maintenance Dashboard"]
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "subtitle",
+            "multilineTextboxSpec": {
+              "lines": ["Defect clustering analysis across 50 equipment units — 7 failure modes identified via K-means on text embeddings"]
+            }
+          },
+          "position": {"x": 0, "y": 1, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "filter-equipment-type",
+            "queries": [{"name": "ds_defect_data_equipment_type", "query": {"datasetName": "defect_data", "fields": [{"name": "equipment_type", "expression": "`equipment_type`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "filter-multi-select", "encodings": {"fields": [{"fieldName": "equipment_type", "displayName": "Equipment Type", "queryName": "ds_defect_data_equipment_type"}]}, "frame": {"showTitle": true, "title": "Equipment Type"}}
+          },
+          "position": {"x": 0, "y": 2, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "filter-severity",
+            "queries": [{"name": "ds_defect_data_severity", "query": {"datasetName": "defect_data", "fields": [{"name": "severity", "expression": "`severity`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "filter-multi-select", "encodings": {"fields": [{"fieldName": "severity", "displayName": "Severity", "queryName": "ds_defect_data_severity"}]}, "frame": {"showTitle": true, "title": "Severity"}}
+          },
+          "position": {"x": 2, "y": 2, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "filter-location",
+            "queries": [{"name": "ds_defect_data_location", "query": {"datasetName": "defect_data", "fields": [{"name": "location", "expression": "`location`"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "filter-multi-select", "encodings": {"fields": [{"fieldName": "location", "displayName": "Location", "queryName": "ds_defect_data_location"}]}, "frame": {"showTitle": true, "title": "Location"}}
+          },
+          "position": {"x": 4, "y": 2, "width": 2, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi-total-records",
+            "queries": [{"name": "main_query", "query": {"datasetName": "defect_data", "fields": [{"name": "count(record_id)", "expression": "COUNT(`record_id`)"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "count(record_id)", "displayName": "Total Work Orders"}}, "frame": {"showTitle": true, "title": "Total Work Orders"}}
+          },
+          "position": {"x": 0, "y": 4, "width": 2, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-avg-repair",
+            "queries": [{"name": "main_query", "query": {"datasetName": "defect_data", "fields": [{"name": "avg(repair_duration_hrs)", "expression": "AVG(`repair_duration_hrs`)"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "avg(repair_duration_hrs)", "displayName": "Avg Repair (hrs)"}}, "frame": {"showTitle": true, "title": "Avg Repair Time (hrs)"}}
+          },
+          "position": {"x": 2, "y": 4, "width": 2, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-total-downtime",
+            "queries": [{"name": "main_query", "query": {"datasetName": "defect_data", "fields": [{"name": "sum(downtime_hrs)", "expression": "SUM(`downtime_hrs`)"}], "disaggregated": false}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "sum(downtime_hrs)", "displayName": "Total Downtime (hrs)"}}, "frame": {"showTitle": true, "title": "Total Downtime (hrs)"}}
+          },
+          "position": {"x": 4, "y": 4, "width": 2, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "section-defect-analysis",
+            "multilineTextboxSpec": {"lines": ["### Defect Analysis"]}
+          },
+          "position": {"x": 0, "y": 7, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "chart-cluster-distribution",
+            "queries": [{"name": "main_query", "query": {"datasetName": "defect_data", "fields": [{"name": "defect_cluster_name", "expression": "`defect_cluster_name`"}, {"name": "count(record_id)", "expression": "COUNT(`record_id`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "defect_cluster_name", "scale": {"type": "categorical"}, "displayName": "Defect Cluster"}, "y": {"fieldName": "count(record_id)", "scale": {"type": "quantitative"}, "displayName": "Records"}}, "frame": {"showTitle": true, "title": "Records by Defect Cluster"}}
+          },
+          "position": {"x": 0, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart-severity-pie",
+            "queries": [{"name": "main_query", "query": {"datasetName": "defect_data", "fields": [{"name": "severity", "expression": "`severity`"}, {"name": "count(record_id)", "expression": "COUNT(`record_id`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "pie", "encodings": {"angle": {"fieldName": "count(record_id)", "scale": {"type": "quantitative"}, "displayName": "Records"}, "color": {"fieldName": "severity", "scale": {"type": "categorical"}, "displayName": "Severity"}}, "frame": {"showTitle": true, "title": "Severity Distribution"}}
+          },
+          "position": {"x": 3, "y": 8, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "section-operational-trends",
+            "multilineTextboxSpec": {"lines": ["### Operational Trends"]}
+          },
+          "position": {"x": 0, "y": 14, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "chart-monthly-visits",
+            "queries": [{"name": "main_query", "query": {"datasetName": "monthly_trend", "fields": [{"name": "month", "expression": "`month`"}, {"name": "visits", "expression": "`visits`"}], "disaggregated": true}}],
+            "spec": {"version": 3, "widgetType": "line", "encodings": {"x": {"fieldName": "month", "scale": {"type": "temporal"}, "displayName": "Month"}, "y": {"fieldName": "visits", "scale": {"type": "quantitative"}, "displayName": "Visits"}}, "frame": {"showTitle": true, "title": "Monthly Visit Volume"}}
+          },
+          "position": {"x": 0, "y": 15, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "chart-equipment-type-downtime",
+            "queries": [{"name": "main_query", "query": {"datasetName": "defect_data", "fields": [{"name": "equipment_type", "expression": "`equipment_type`"}, {"name": "avg(downtime_hrs)", "expression": "AVG(`downtime_hrs`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "equipment_type", "scale": {"type": "categorical"}, "displayName": "Equipment Type"}, "y": {"fieldName": "avg(downtime_hrs)", "scale": {"type": "quantitative"}, "displayName": "Avg Downtime (hrs)"}}, "frame": {"showTitle": true, "title": "Avg Downtime by Equipment Type"}}
+          },
+          "position": {"x": 3, "y": 15, "width": 3, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "section-equipment-details",
+            "multilineTextboxSpec": {"lines": ["### Equipment Details"]}
+          },
+          "position": {"x": 0, "y": 21, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "table-equipment",
+            "queries": [{"name": "main_query", "query": {"datasetName": "equipment_agg", "fields": [{"name": "equipment_id", "expression": "`equipment_id`"}, {"name": "equipment_type", "expression": "`equipment_type`"}, {"name": "location", "expression": "`location`"}, {"name": "criticality", "expression": "`criticality`"}, {"name": "total_visits", "expression": "`total_visits`"}, {"name": "distinct_defects", "expression": "`distinct_defects`"}, {"name": "avg_repair_hrs", "expression": "`avg_repair_hrs`"}, {"name": "avg_downtime_hrs", "expression": "`avg_downtime_hrs`"}, {"name": "pct_high_severity", "expression": "`pct_high_severity`"}, {"name": "avg_quality_score", "expression": "`avg_quality_score`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "table", "encodings": {"columns": [{"fieldName": "equipment_id", "displayName": "Equipment"}, {"fieldName": "equipment_type", "displayName": "Type"}, {"fieldName": "location", "displayName": "Location"}, {"fieldName": "criticality", "displayName": "Criticality"}, {"fieldName": "total_visits", "displayName": "Visits"}, {"fieldName": "distinct_defects", "displayName": "Defect Types"}, {"fieldName": "avg_repair_hrs", "displayName": "Avg Repair (hrs)"}, {"fieldName": "avg_downtime_hrs", "displayName": "Avg Downtime (hrs)"}, {"fieldName": "pct_high_severity", "displayName": "% High Severity"}, {"fieldName": "avg_quality_score", "displayName": "Avg Quality"}]}, "frame": {"showTitle": true, "title": "Equipment Health Summary"}}
+          },
+          "position": {"x": 0, "y": 22, "width": 6, "height": 7}
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ]
+}

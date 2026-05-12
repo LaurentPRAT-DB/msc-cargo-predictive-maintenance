@@ -203,6 +203,78 @@ The notebook produces 5 PNG plots saved to the volume:
 
 ---
 
+## Installation
+
+### Prerequisites
+
+| Requirement | Version | Installation |
+|-------------|---------|--------------|
+| Databricks CLI | ≥ 0.281.0 | `brew install databricks/tap/databricks` (macOS) or [install guide](https://docs.databricks.com/dev-tools/cli/install.html) |
+| Python | ≥ 3.9 | Required only if running notebooks locally |
+| Git | any | For cloning the repository |
+
+### Quick Start
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/LaurentPRAT-DB/msc-cargo-predictive-maintenance.git
+cd msc-cargo-predictive-maintenance
+
+# 2. Authenticate with your Databricks workspace
+databricks auth login --host https://YOUR-WORKSPACE.cloud.databricks.com
+
+# 3. Configure target variables (edit databricks.yml or pass at deploy time)
+#    - catalog: your Unity Catalog name
+#    - schema: target schema name
+#    - warehouse_id: SQL warehouse for the dashboard
+
+# 4. Deploy all resources
+databricks bundle deploy -t dev
+
+# 5. Upload source data to the volume
+databricks fs cp files/equipment_master.csv /Volumes/<catalog>/<schema>/raw_data/
+databricks fs cp files/work_orders.csv /Volumes/<catalog>/<schema>/raw_data/
+
+# 6. Run the pipeline
+databricks bundle run predictive_maintenance_pipeline -t dev
+```
+
+### What Gets Deployed
+
+| Resource | Type | Description |
+|----------|------|-------------|
+| Schema | Unity Catalog | `<catalog>.<schema>` |
+| Volume | UC Volume | `raw_data` — stores CSVs and generated plots |
+| Job | Workflow | 2-task pipeline (setup_tables → predictive_maintenance) |
+| Dashboard | AI/BI | Predictive maintenance overview with KPIs, charts, and filters |
+
+### Deploying to a Different Workspace
+
+Override variables at deploy time:
+
+```bash
+databricks bundle deploy -t dev \
+  --var="catalog=my_catalog" \
+  --var="schema=my_schema" \
+  --var="warehouse_id=my_warehouse_id"
+```
+
+Or add a new target in `databricks.yml`:
+
+```yaml
+targets:
+  prod:
+    mode: production
+    workspace:
+      host: https://your-prod-workspace.cloud.databricks.com
+    variables:
+      catalog: prod_catalog
+      schema: msc_cargo_predictive_maintenance
+      warehouse_id: your_warehouse_id
+```
+
+---
+
 ## Test the Demo
 
 ### Option A — Run via Databricks Asset Bundle (recommended)
@@ -218,7 +290,7 @@ databricks auth login --host https://fevm-serverless-stable-3n0ihb.cloud.databri
 # 3. Validate the bundle
 databricks bundle validate -t dev
 
-# 4. Deploy resources (schema, volume, job, notebooks)
+# 4. Deploy resources (schema, volume, job, dashboard, notebooks)
 databricks bundle deploy -t dev
 
 # 5. Upload data files to the volume
@@ -319,7 +391,11 @@ This project includes a DABs configuration for repeatable deployment.
 databricks.yml                              # Bundle config + targets
 resources/
 ├── schema.yml                              # UC schema + volume
-└── predictive_maintenance_job.yml          # 2-task serverless job
+├── predictive_maintenance_job.yml          # 2-task serverless job
+└── dashboard.yml                           # AI/BI dashboard
+src/
+└── dashboards/
+    └── predictive_maintenance.lvdash.json  # Dashboard definition
 notebooks/
 ├── 00_setup_tables.py                      # Task 1: CSV → Delta
 └── 01_predictive_maintenance.py            # Task 2: Clustering pipeline
@@ -336,10 +412,11 @@ files/
 |----------|---------|-------------|
 | `catalog` | `serverless_stable_3n0ihb_catalog` | Target Unity Catalog |
 | `schema` | `msc_cargo_predictive_maintenance` | Target schema |
+| `warehouse_id` | `b868e84cedeb4262` | SQL warehouse for dashboard queries |
 
 Override per target in `databricks.yml` or at deploy time:
 ```bash
-databricks bundle deploy -t dev --var="catalog=my_catalog" --var="schema=my_schema"
+databricks bundle deploy -t dev --var="catalog=my_catalog" --var="schema=my_schema" --var="warehouse_id=my_warehouse"
 ```
 
 ---
