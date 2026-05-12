@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "resources": [
+    {
+      "type": "schema",
+      "name": "serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance",
+      "id": "serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance",
+      "created_at": "2026-05-12T12:40:44.067253+00:00",
+      "updated_at": "2026-05-12T12:40:44.067253+00:00"
+    },
+    {
+      "type": "volume",
+      "name": "serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.raw_data",
+      "id": "serverless_stable_3n0ihb_catalog.msc_cargo_predictive_maintenance.raw_data",
+      "created_at": "2026-05-12T12:40:51.068016+00:00",
+      "updated_at": "2026-05-12T12:40:51.068016+00:00"
+    },
+    {
+      "type": "dashboard",
+      "name": "MSC Cargo \u2014 Predictive Maintenance",
+      "id": "01f14e04837618969d1e3cbbee36f8e3",
+      "created_at": "2026-05-12T13:14:32.269010+00:00",
+      "updated_at": "2026-05-12T13:14:32.269010+00:00",
+      "url": "https://fevm-serverless-stable-3n0ihb.cloud.databricks.com/sql/dashboardsv3/01f14e04837618969d1e3cbbee36f8e3"
+    }
+  ]
+}
