@@ -279,25 +279,46 @@ targets:
 
 ### Option A — Run via Databricks Asset Bundle (recommended)
 
+Use the automated deployment script:
+
 ```bash
 # 1. Clone the repo
 git clone https://github.com/LaurentPRAT-DB/msc-cargo-predictive-maintenance.git
 cd msc-cargo-predictive-maintenance
 
-# 2. Authenticate (if not already configured)
+# 2. Run the one-click deployment
+./deploy.sh
+```
+
+The script handles authentication, validation, deployment, data upload, and pipeline execution automatically.
+
+**Customize the deployment:**
+
+```bash
+# Deploy to a different workspace
+./deploy.sh --host https://my-workspace.cloud.databricks.com
+
+# Override catalog/schema
+./deploy.sh --catalog my_catalog --schema my_schema
+
+# Deploy to a specific target
+./deploy.sh -t prod
+
+# Deploy only (no pipeline run)
+./deploy.sh --skip-run
+
+# Skip interactive auth (use existing token)
+./deploy.sh --skip-auth
+```
+
+**Manual step-by-step** (equivalent to what the script does):
+
+```bash
 databricks auth login --host https://fevm-serverless-stable-3n0ihb.cloud.databricks.com
-
-# 3. Validate the bundle
 databricks bundle validate -t dev
-
-# 4. Deploy resources (schema, volume, job, dashboard, notebooks)
 databricks bundle deploy -t dev
-
-# 5. Upload data files to the volume
 databricks fs cp files/equipment_master.csv /Volumes/serverless_stable_3n0ihb_catalog/msc_cargo_predictive_maintenance/raw_data/
 databricks fs cp files/work_orders.csv /Volumes/serverless_stable_3n0ihb_catalog/msc_cargo_predictive_maintenance/raw_data/
-
-# 6. Run the full pipeline (setup_tables → predictive_maintenance)
 databricks bundle run predictive_maintenance_pipeline -t dev
 ```
 
