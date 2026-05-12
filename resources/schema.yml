@@ -1,0 +1,14 @@
+resources:
+  schemas:
+    predictive_maintenance_schema:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: "MSC Cargo predictive maintenance - defect clustering and maintenance forecasting"
+
+  volumes:
+    raw_data:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.schema}
+      name: raw_data
+      volume_type: MANAGED
+      comment: "Raw CSV data for predictive maintenance demo"

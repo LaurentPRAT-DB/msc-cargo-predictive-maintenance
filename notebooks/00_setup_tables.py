@@ -10,8 +10,11 @@
 
 # COMMAND ----------
 
-CATALOG = "serverless_stable_3n0ihb_catalog"
-SCHEMA = "msc_cargo_predictive_maintenance"
+dbutils.widgets.text("catalog", "serverless_stable_3n0ihb_catalog", "Catalog")
+dbutils.widgets.text("schema", "msc_cargo_predictive_maintenance", "Schema")
+
+CATALOG = dbutils.widgets.get("catalog")
+SCHEMA = dbutils.widgets.get("schema")
 VOLUME_PATH = f"/Volumes/{CATALOG}/{SCHEMA}/raw_data"
 
 spark.sql(f"USE CATALOG {CATALOG}")

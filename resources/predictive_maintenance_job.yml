@@ -1,0 +1,32 @@
+resources:
+  jobs:
+    predictive_maintenance_pipeline:
+      name: "[${bundle.target}] MSC Cargo - Predictive Maintenance Pipeline"
+      tasks:
+        - task_key: setup_tables
+          notebook_task:
+            notebook_path: ../notebooks/00_setup_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          environment_key: default
+
+        - task_key: predictive_maintenance
+          depends_on:
+            - task_key: setup_tables
+          notebook_task:
+            notebook_path: ../notebooks/01_predictive_maintenance.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "1"
+            dependencies:
+              - umap-learn
+              - scikit-learn
+              - seaborn
+              - matplotlib

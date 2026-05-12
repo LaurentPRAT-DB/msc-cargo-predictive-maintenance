@@ -1,0 +1,23 @@
+bundle:
+  name: msc-cargo-predictive-maintenance
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog name
+    default: serverless_stable_3n0ihb_catalog
+  schema:
+    description: Schema for predictive maintenance tables
+    default: msc_cargo_predictive_maintenance
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://fevm-serverless-stable-3n0ihb.cloud.databricks.com
+    variables:
+      catalog: serverless_stable_3n0ihb_catalog
+      schema: msc_cargo_predictive_maintenance
