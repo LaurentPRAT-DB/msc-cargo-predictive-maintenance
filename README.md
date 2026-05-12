@@ -385,17 +385,19 @@ This yields higher ARI (0.5+) because contextual embeddings better separate over
 
 ## Deployment (Databricks Asset Bundle)
 
-This project includes a DABs configuration for repeatable deployment.
+This project uses [Databricks Asset Bundles (DABs)](https://docs.databricks.com/dev-tools/bundles/) for repeatable, infrastructure-as-code deployment to any workspace.
+
+### Bundle Structure
 
 ```
-databricks.yml                              # Bundle config + targets
+databricks.yml                              # Bundle config + variables + targets
 resources/
 ├── schema.yml                              # UC schema + volume
 ├── predictive_maintenance_job.yml          # 2-task serverless job
 └── dashboard.yml                           # AI/BI dashboard
 src/
 └── dashboards/
-    └── predictive_maintenance.lvdash.json  # Dashboard definition
+    └── predictive_maintenance.lvdash.json  # Dashboard definition (Lakeview format)
 notebooks/
 ├── 00_setup_tables.py                      # Task 1: CSV → Delta
 └── 01_predictive_maintenance.py            # Task 2: Clustering pipeline
@@ -414,9 +416,137 @@ files/
 | `schema` | `msc_cargo_predictive_maintenance` | Target schema |
 | `warehouse_id` | `b868e84cedeb4262` | SQL warehouse for dashboard queries |
 
-Override per target in `databricks.yml` or at deploy time:
+### Step-by-Step Deployment
+
+#### 1. Install the Databricks CLI
+
 ```bash
-databricks bundle deploy -t dev --var="catalog=my_catalog" --var="schema=my_schema" --var="warehouse_id=my_warehouse"
+# macOS
+brew install databricks/tap/databricks
+
+# Linux / Windows (pip)
+pip install databricks-cli
+
+# Verify (requires v0.281.0+ for dashboard dataset_catalog support)
+databricks --version
+```
+
+#### 2. Authenticate
+
+```bash
+# Interactive OAuth login (recommended)
+databricks auth login --host https://YOUR-WORKSPACE.cloud.databricks.com
+
+# Or configure a profile in ~/.databrickscfg
+databricks configure --profile my-profile
+```
+
+#### 3. Configure Variables
+
+Edit `databricks.yml` to set your target workspace and variables:
+
+```yaml
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://YOUR-WORKSPACE.cloud.databricks.com
+    variables:
+      catalog: your_catalog
+      schema: msc_cargo_predictive_maintenance
+      warehouse_id: your_warehouse_id
+```
+
+Or pass variables at deploy time (no file changes needed):
+
+```bash
+databricks bundle deploy -t dev \
+  --var="catalog=my_catalog" \
+  --var="schema=my_schema" \
+  --var="warehouse_id=my_warehouse_id"
+```
+
+#### 4. Validate
+
+```bash
+databricks bundle validate -t dev
+```
+
+This checks that all resource definitions are valid and the workspace is reachable.
+
+#### 5. Deploy
+
+```bash
+databricks bundle deploy -t dev
+```
+
+This creates/updates all resources in the workspace:
+- Unity Catalog schema and volume
+- Notebooks (uploaded to workspace)
+- Job definition (2-task pipeline)
+- AI/BI dashboard
+
+#### 6. Upload Source Data
+
+```bash
+databricks fs cp files/equipment_master.csv /Volumes/<catalog>/<schema>/raw_data/
+databricks fs cp files/work_orders.csv /Volumes/<catalog>/<schema>/raw_data/
+```
+
+#### 7. Run the Pipeline
+
+```bash
+# Run the full job (setup_tables → predictive_maintenance)
+databricks bundle run predictive_maintenance_pipeline -t dev
+```
+
+The job runs on **serverless compute** — no cluster configuration required. Total runtime: ~60 seconds.
+
+#### 8. View the Dashboard
+
+After the pipeline completes, open the AI/BI dashboard in your workspace:
+- Navigate to **SQL → Dashboards**
+- Open **"[dev] MSC Cargo — Predictive Maintenance"**
+
+### Cleanup
+
+To remove all deployed resources from the workspace:
+
+```bash
+databricks bundle destroy -t dev
+```
+
+### Multi-Environment Deployment
+
+Add additional targets for staging/production:
+
+```yaml
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://dev-workspace.cloud.databricks.com
+    variables:
+      catalog: dev_catalog
+      schema: msc_cargo_predictive_maintenance
+
+  prod:
+    mode: production
+    workspace:
+      host: https://prod-workspace.cloud.databricks.com
+    variables:
+      catalog: prod_catalog
+      schema: msc_cargo_predictive_maintenance
+      warehouse_id: prod_warehouse_id
+```
+
+Deploy to each environment independently:
+
+```bash
+databricks bundle deploy -t dev
+databricks bundle deploy -t prod
 ```
 
 ---
